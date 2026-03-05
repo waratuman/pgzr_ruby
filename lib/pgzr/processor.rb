@@ -2,13 +2,15 @@
 
 module PGZR
   class Processor
-    def initialize(dest:, source_id:, poll_interval_ms: 0)
+    def initialize(dest:, source_id:, poll_interval_ms: 0, metadata_message_prefix: nil, metadata_table: nil)
       @strings = []
       config = FFI::ProcessorConfig.new
 
       set_conn_fields(config, :dest, dest)
-      config[:source_id]        = pin_string(source_id)
-      config[:poll_interval_ms] = poll_interval_ms
+      config[:source_id]                 = pin_string(source_id)
+      config[:poll_interval_ms]          = poll_interval_ms
+      config[:metadata_message_prefix]   = pin_string(metadata_message_prefix)
+      config[:metadata_table]            = pin_string(metadata_table)
 
       @ptr = FFI.pgzr_processor_new(config)
       raise Error, FFI.last_error || "pgzr_processor_new failed" if @ptr.null?

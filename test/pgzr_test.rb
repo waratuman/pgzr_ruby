@@ -37,15 +37,17 @@ module PGZR
 
     class ProcessorConfig < ::FFI::Struct
       layout(
-        :dest_host,          :pointer,
-        :dest_port,          :uint16,
-        :dest_user,          :pointer,
-        :dest_password,      :pointer,
-        :dest_database,      :pointer,
-        :dest_socket_path,   :pointer,
-        :dest_tls_mode,      :uint8,
-        :source_id,          :pointer,
-        :poll_interval_ms,   :uint32
+        :dest_host,                  :pointer,
+        :dest_port,                  :uint16,
+        :dest_user,                  :pointer,
+        :dest_password,              :pointer,
+        :dest_database,              :pointer,
+        :dest_socket_path,           :pointer,
+        :dest_tls_mode,              :uint8,
+        :source_id,                  :pointer,
+        :poll_interval_ms,           :uint32,
+        :metadata_message_prefix,    :pointer,
+        :metadata_table,             :pointer
       )
     end
 
@@ -123,6 +125,7 @@ class PGZRProcessorConfigTest < Minitest::Test
     expected = %i[
       dest_host dest_port dest_user dest_password dest_database
       dest_socket_path dest_tls_mode source_id poll_interval_ms
+      metadata_message_prefix metadata_table
     ]
     assert_equal expected, PGZR::FFI::ProcessorConfig.members
   end
@@ -138,6 +141,16 @@ class PGZRProcessorConfigTest < Minitest::Test
     assert_equal 0, config[:dest_port]
     assert_equal 0, config[:dest_tls_mode]
     assert_equal 0, config[:poll_interval_ms]
+  end
+
+  def test_metadata_fields
+    config = PGZR::FFI::ProcessorConfig.new
+    prefix = ::FFI::MemoryPointer.from_string("pgzr.")
+    table  = ::FFI::MemoryPointer.from_string("my_meta")
+    config[:metadata_message_prefix] = prefix
+    config[:metadata_table]          = table
+    assert_equal "pgzr.", config[:metadata_message_prefix].read_string
+    assert_equal "my_meta", config[:metadata_table].read_string
   end
 end
 

@@ -37,15 +37,17 @@ module PGZR
 
     class ProcessorConfig < ::FFI::Struct
       layout(
-        :dest_host,          :pointer,
-        :dest_port,          :uint16,
-        :dest_user,          :pointer,
-        :dest_password,      :pointer,
-        :dest_database,      :pointer,
-        :dest_socket_path,   :pointer,
-        :dest_tls_mode,      :uint8,
-        :source_id,          :pointer,
-        :poll_interval_ms,   :uint32
+        :dest_host,                  :pointer,
+        :dest_port,                  :uint16,
+        :dest_user,                  :pointer,
+        :dest_password,              :pointer,
+        :dest_database,              :pointer,
+        :dest_socket_path,           :pointer,
+        :dest_tls_mode,              :uint8,
+        :source_id,                  :pointer,
+        :poll_interval_ms,           :uint32,
+        :metadata_message_prefix,    :pointer,
+        :metadata_table,             :pointer
       )
     end
 
@@ -55,11 +57,11 @@ module PGZR
     # returns a pointer to the error string bytes (not null-terminated).
     attach_function :pgzr_last_error,            [:pointer],  :pointer
     attach_function :pgzr_ingestor_new,          [:pointer],  :pointer
-    attach_function :pgzr_ingestor_run,          [:pointer],  :int
+    attach_function :pgzr_ingestor_run,          [:pointer],  :int,  blocking: true
     attach_function :pgzr_ingestor_stop,         [:pointer],  :void
     attach_function :pgzr_ingestor_free,         [:pointer],  :void
     attach_function :pgzr_processor_new,         [:pointer],  :pointer
-    attach_function :pgzr_processor_run,         [:pointer],  :int
+    attach_function :pgzr_processor_run,         [:pointer],  :int,  blocking: true
     attach_function :pgzr_processor_process_one, [:pointer],  :int
     attach_function :pgzr_processor_stop,        [:pointer],  :void
     attach_function :pgzr_processor_free,        [:pointer],  :void
