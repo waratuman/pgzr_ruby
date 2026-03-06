@@ -2,7 +2,7 @@
 
 module PGZR
   class Ingestor
-    def initialize(source:, dest:, source_id:, max_batch_size: 0)
+    def initialize(source:, dest:, source_id:, max_batch_size: 0, on_flush: nil)
       @strings = []
       config = FFI::IngestConfig.new
 
@@ -13,8 +13,17 @@ module PGZR
 
       set_conn_fields(config, :dest, dest)
 
-      config[:source_id]       = pin_string(source_id)
-      config[:max_batch_size]  = max_batch_size
+      config[:source_id]         = pin_string(source_id)
+      config[:max_batch_size]    = max_batch_size
+      config[:on_flush_context]  = ::FFI::Pointer::NULL
+
+      if on_flush
+        fn = ::FFI::Function.new(:void, [:pointer, :uint64, :uint64, :size_t, :bool]) do |_ctx, start_lsn, end_lsn, msg_count, is_complete|
+          on_flush.call(start_lsn, end_lsn, msg_count, is_complete)
+        end
+        @strings << fn
+        config[:on_flush] = fn
+      end
 
       @ptr = FFI.pgzr_ingestor_new(config)
       raise Error, FFI.last_error || "pgzr_ingestor_new failed" if @ptr.null?

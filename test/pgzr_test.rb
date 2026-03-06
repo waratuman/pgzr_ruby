@@ -31,7 +31,9 @@ module PGZR
         :dest_socket_path,   :pointer,
         :dest_tls_mode,      :uint8,
         :source_id,          :pointer,
-        :max_batch_size,     :uint32
+        :max_batch_size,     :uint32,
+        :on_flush,           :pointer,
+        :on_flush_context,   :pointer
       )
     end
 
@@ -51,7 +53,7 @@ module PGZR
       )
     end
 
-    TLS_MODES = { disable: 0, prefer: 1, require: 2 }.freeze
+    TLS_MODES = { disable: 0, prefer: 1, require: 2, verify_full: 3 }.freeze
 
     def self.tls_mode_value(mode)
       return 0 if mode.nil?
@@ -86,6 +88,7 @@ class PGZRIngestConfigTest < Minitest::Test
       source_socket_path source_tls_mode slot_name publication_names proto_version
       dest_host dest_port dest_user dest_password dest_database
       dest_socket_path dest_tls_mode source_id max_batch_size
+      on_flush on_flush_context
     ]
     assert_equal expected, PGZR::FFI::IngestConfig.members
   end
@@ -117,6 +120,12 @@ class PGZRIngestConfigTest < Minitest::Test
     config = PGZR::FFI::IngestConfig.new
     config[:source_tls_mode] = 2
     assert_equal 2, config[:source_tls_mode]
+  end
+
+  def test_on_flush_fields_default_null
+    config = PGZR::FFI::IngestConfig.new
+    assert config[:on_flush].null?
+    assert config[:on_flush_context].null?
   end
 end
 
@@ -173,6 +182,10 @@ class PGZRTlsModeTest < Minitest::Test
 
   def test_string_mode
     assert_equal 1, PGZR::FFI.tls_mode_value("prefer")
+  end
+
+  def test_verify_full
+    assert_equal 3, PGZR::FFI.tls_mode_value(:verify_full)
   end
 
   def test_unknown_mode_raises

@@ -31,7 +31,9 @@ module PGZR
         :dest_socket_path,   :pointer,
         :dest_tls_mode,      :uint8,
         :source_id,          :pointer,
-        :max_batch_size,     :uint32
+        :max_batch_size,     :uint32,
+        :on_flush,           :pointer,
+        :on_flush_context,   :pointer
       )
     end
 
@@ -77,7 +79,7 @@ module PGZR
       str_ptr.read_string(len)
     end
 
-    TLS_MODES = { disable: 0, prefer: 1, require: 2 }.freeze
+    TLS_MODES = { disable: 0, prefer: 1, require: 2, verify_full: 3 }.freeze
 
     # Converts a Ruby symbol/string TLS mode to the uint8 value.
     def self.tls_mode_value(mode)
