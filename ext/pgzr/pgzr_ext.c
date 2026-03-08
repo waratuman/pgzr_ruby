@@ -110,6 +110,11 @@ typedef struct {
     int rc;
 } pgzr_processor_run_call_t;
 
+typedef struct {
+    pgzr_processor_wrapper_t *wrapper;
+    int rc;
+} pgzr_processor_process_one_call_t;
+
 static VALUE mPGZR;
 static VALUE cIngestor;
 static VALUE cProcessor;
@@ -512,7 +517,7 @@ static void pgzr_ingestor_on_flush_bridge(void *context, uint64_t start_lsn, uin
     call.msg_count = msg_count;
     call.is_complete = is_complete;
 
-    if (call.wrapper->on_flush == Qnil) {
+    if (NIL_P(call.wrapper->on_flush)) {
         return;
     }
 
@@ -526,10 +531,33 @@ static void *pgzr_ingestor_run_without_gvl(void *arg) {
     return NULL;
 }
 
+static void pgzr_ingestor_ubf(void *arg) {
+    pgzr_ingestor_wrapper_t *wrapper = (pgzr_ingestor_wrapper_t *)arg;
+
+    if (wrapper->ptr != NULL) {
+        pgzr_lib.ingestor_stop(wrapper->ptr);
+    }
+}
+
 static void *pgzr_processor_run_without_gvl(void *arg) {
     pgzr_processor_run_call_t *call = (pgzr_processor_run_call_t *)arg;
 
     call->rc = pgzr_lib.processor_run(call->wrapper->ptr);
+    return NULL;
+}
+
+static void pgzr_processor_ubf(void *arg) {
+    pgzr_processor_wrapper_t *wrapper = (pgzr_processor_wrapper_t *)arg;
+
+    if (wrapper->ptr != NULL) {
+        pgzr_lib.processor_stop(wrapper->ptr);
+    }
+}
+
+static void *pgzr_processor_process_one_without_gvl(void *arg) {
+    pgzr_processor_process_one_call_t *call = (pgzr_processor_process_one_call_t *)arg;
+
+    call->rc = pgzr_lib.processor_process_one(call->wrapper->ptr);
     return NULL;
 }
 
@@ -645,7 +673,7 @@ static VALUE pgzr_ingestor_run(VALUE self) {
     call.wrapper = wrapper;
     call.rc = 0;
 
-    rb_thread_call_without_gvl(pgzr_ingestor_run_without_gvl, &call, RUBY_UBF_IO, NULL);
+    rb_thread_call_without_gvl(pgzr_ingestor_run_without_gvl, &call, pgzr_ingestor_ubf, wrapper);
 
     wrapper->running = false;
 
@@ -710,7 +738,7 @@ static VALUE pgzr_processor_run(VALUE self) {
     call.wrapper = wrapper;
     call.rc = 0;
 
-    rb_thread_call_without_gvl(pgzr_processor_run_without_gvl, &call, RUBY_UBF_IO, NULL);
+    rb_thread_call_without_gvl(pgzr_processor_run_without_gvl, &call, pgzr_processor_ubf, wrapper);
 
     wrapper->running = false;
 
@@ -723,17 +751,21 @@ static VALUE pgzr_processor_run(VALUE self) {
 
 static VALUE pgzr_processor_process_one(VALUE self) {
     pgzr_processor_wrapper_t *wrapper;
-    int rc;
+    pgzr_processor_process_one_call_t call;
 
     TypedData_Get_Struct(self, pgzr_processor_wrapper_t, &pgzr_processor_type, wrapper);
     pgzr_processor_require_ptr(wrapper);
 
-    rc = pgzr_lib.processor_process_one(wrapper->ptr);
-    if (rc == -1) {
+    call.wrapper = wrapper;
+    call.rc = 0;
+
+    rb_thread_call_without_gvl(pgzr_processor_process_one_without_gvl, &call, RUBY_UBF_IO, NULL);
+
+    if (call.rc == -1) {
         pgzr_raise_last_error("pgzr_processor_process_one failed");
     }
 
-    return rc == 1 ? Qtrue : Qfalse;
+    return call.rc == 1 ? Qtrue : Qfalse;
 }
 
 static VALUE pgzr_processor_stop(VALUE self) {
