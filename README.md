@@ -1,7 +1,8 @@
 # pgzr
 
 Ruby bindings for [pgzr](https://github.com/waratuman/pgzr), a PostgreSQL
-logical replication library. Uses FFI to wrap the `libpgzr` C ABI.
+logical replication library. Uses a native Ruby extension to wrap the `libpgzr`
+C ABI.
 
 ## Prerequisites
 
@@ -14,6 +15,9 @@ standard system library location:
 ```sh
 export PGZR_LIB_PATH=/path/to/libpgzr.dylib
 ```
+
+The extension loads `libpgzr` lazily at runtime, so `PGZR_LIB_PATH` is read
+when the first native call is made.
 
 ## Installation
 
@@ -53,7 +57,6 @@ ingestor = PGZR::Ingestor.new(
   source_id: "00000000-0000-0000-0000-000000000001"
 )
 
-# Run in a thread so you can stop it from a signal handler
 thread = Thread.new { ingestor.run }
 
 Signal.trap("INT") { ingestor.stop }
@@ -79,26 +82,24 @@ processor = PGZR::Processor.new(
   source_id: "00000000-0000-0000-0000-000000000001"
 )
 
-# Blocking loop
 processor.run
-
-# Or process one batch at a time
-processed = processor.process_one  # => true if a batch was processed, false if none available
+processed = processor.process_one
 ```
 
 ### TLS Modes
 
 Both `source` and `dest` connection hashes accept a `:tls_mode` key:
 
-- `:disable` (default) -- no TLS
-- `:prefer` -- use TLS if available
-- `:require` -- require TLS
+- `:disable` (default): no TLS
+- `:prefer`: use TLS if available
+- `:require`: require TLS
+- `:verify_full`: require TLS and verify the server certificate/hostname
 
 ```ruby
 PGZR::Ingestor.new(
-  source: { host: "db.example.com", tls_mode: :require, ... },
-  dest:   { host: "127.0.0.1", ... },
-  source_id: "..."
+  source: { host: "db.example.com", tls_mode: :require, slot_name: "slot", publication_names: "pub" },
+  dest: { host: "127.0.0.1" },
+  source_id: "00000000-0000-0000-0000-000000000001"
 )
 ```
 
@@ -108,6 +109,8 @@ PGZR::Ingestor.new(
 bundle install
 rake test
 ```
+
+`rake test` compiles the native extension before running the test suite.
 
 ## License
 

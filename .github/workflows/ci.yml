@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby-version: [3.4.8]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout libpgzr source
+        uses: actions/checkout@v4
+        with:
+          repository: waratuman/pgzr
+          path: vendor/pgzr
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - name: Build libpgzr
+        working-directory: vendor/pgzr
+        run: zig build lib
+
+      - name: Run test suite
+        env:
+          PGZR_LIB_PATH: ${{ github.workspace }}/vendor/pgzr/zig-out/lib/libpgzr.so
+          PGZR_RUN_NATIVE_SMOKE: "1"
+        run: bundle exec rake test
