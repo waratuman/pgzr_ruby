@@ -67,7 +67,8 @@ thread.join
 ### Processor
 
 Reads batches from the destination database and decodes them into structured
-transactions.
+transactions. Processors are source-agnostic and derive the source from each
+claimed batch, so multiple processors can safely run concurrently.
 
 ```ruby
 require "pgzr"
@@ -78,8 +79,7 @@ processor = PGZR::Processor.new(
     port: 5432,
     user: "postgres",
     database: "dest_db"
-  },
-  source_id: "00000000-0000-0000-0000-000000000001"
+  }
 )
 
 processor.run

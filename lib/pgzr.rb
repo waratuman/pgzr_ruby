@@ -93,13 +93,11 @@ module PGZR
     # :method: initialize
     #
     # call-seq:
-    #   PGZR::Processor.new(dest:, source_id:, poll_interval_ms: 0, metadata_message_prefix: nil, metadata_table: nil) -> processor
+    #   PGZR::Processor.new(dest:, poll_interval_ms: 0, metadata_message_prefix: nil, metadata_table: nil) -> processor
     #
     # Creates a native processor.
     #
     # The +dest+ hash accepts the same connection keys as +PGZR::Ingestor+.
-    #
-    # +source_id+ identifies which stream to process.
     #
     # +poll_interval_ms+ controls how often the processor polls when no pending
     # batches are available.

@@ -39,7 +39,6 @@ typedef struct {
     const char *dest_database;
     const char *dest_socket_path;
     uint8_t dest_tls_mode;
-    const char *source_id;
     uint32_t poll_interval_ms;
     const char *metadata_message_prefix;
     const char *metadata_table;
@@ -625,7 +624,6 @@ static VALUE pgzr_ingestor_initialize(int argc, VALUE *argv, VALUE self) {
 static VALUE pgzr_processor_initialize(int argc, VALUE *argv, VALUE self) {
     VALUE kwargs;
     VALUE dest;
-    VALUE source_id;
     VALUE poll_interval_ms;
     VALUE metadata_message_prefix;
     VALUE metadata_table;
@@ -635,7 +633,6 @@ static VALUE pgzr_processor_initialize(int argc, VALUE *argv, VALUE self) {
     Check_Type(kwargs, T_HASH);
 
     dest = pgzr_required_keyword(kwargs, id_dest, "dest");
-    source_id = pgzr_required_keyword(kwargs, id_source_id, "source_id");
     poll_interval_ms = pgzr_hash_lookup_symbol(kwargs, id_poll_interval_ms);
     metadata_message_prefix = pgzr_hash_lookup_symbol(kwargs, id_metadata_message_prefix);
     metadata_table = pgzr_hash_lookup_symbol(kwargs, id_metadata_table);
@@ -643,7 +640,6 @@ static VALUE pgzr_processor_initialize(int argc, VALUE *argv, VALUE self) {
     TypedData_Get_Struct(self, pgzr_processor_wrapper_t, &pgzr_processor_type, wrapper);
 
     pgzr_set_conn_fields(&wrapper->strings, dest, "dest port", &wrapper->config.dest_host, &wrapper->config.dest_port, &wrapper->config.dest_user, &wrapper->config.dest_password, &wrapper->config.dest_database, &wrapper->config.dest_socket_path, &wrapper->config.dest_tls_mode);
-    wrapper->config.source_id = pgzr_store_string(&wrapper->strings, source_id);
     wrapper->config.poll_interval_ms = pgzr_uint32_value(poll_interval_ms, "poll_interval_ms");
     wrapper->config.metadata_message_prefix = pgzr_store_string(&wrapper->strings, metadata_message_prefix);
     wrapper->config.metadata_table = pgzr_store_string(&wrapper->strings, metadata_table);
