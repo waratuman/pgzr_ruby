@@ -7,6 +7,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * ABI version this build of pgzr_ruby was compiled against. Must match the
+ * value returned by libpgzr's pgzr_abi_version(). A missing symbol means an
+ * older libpgzr (pre-0.4.0) is loaded; any mismatch is fatal because the
+ * exported struct layouts are not guaranteed to be compatible.
+ */
+#define PGZR_RUBY_ABI_VERSION 0x00040000U
+
+typedef uint32_t (*pgzr_abi_version_fn)(void);
+
 typedef struct {
     const char *source_host;
     uint16_t source_port;
@@ -266,6 +276,33 @@ static void *pgzr_resolve_symbol(const char *name) {
     return symbol;
 }
 
+static void pgzr_verify_abi(void) {
+    pgzr_abi_version_fn fn;
+    uint32_t version;
+
+    dlerror();
+    fn = (pgzr_abi_version_fn)dlsym(pgzr_lib.handle, "pgzr_abi_version");
+    if (fn == NULL) {
+        void *handle = pgzr_lib.handle;
+        pgzr_lib.handle = NULL;
+        dlclose(handle);
+        rb_raise(rb_eLoadError,
+                 "loaded libpgzr is too old (missing pgzr_abi_version symbol); "
+                 "pgzr_ruby requires libpgzr ABI 0x%08x — upgrade libpgzr or set PGZR_LIB_PATH",
+                 PGZR_RUBY_ABI_VERSION);
+    }
+
+    version = fn();
+    if (version != PGZR_RUBY_ABI_VERSION) {
+        void *handle = pgzr_lib.handle;
+        pgzr_lib.handle = NULL;
+        dlclose(handle);
+        rb_raise(rb_eLoadError,
+                 "libpgzr ABI mismatch: loaded 0x%08x, pgzr_ruby was built against 0x%08x",
+                 version, PGZR_RUBY_ABI_VERSION);
+    }
+}
+
 static void pgzr_load_library(void) {
     const char *env_path;
 
@@ -298,6 +335,8 @@ static void pgzr_load_library(void) {
             rb_raise(rb_eLoadError, "failed to load libpgzr; set PGZR_LIB_PATH to the full shared library path");
         }
     }
+
+    pgzr_verify_abi();
 
     pgzr_lib.last_error = (pgzr_last_error_fn)pgzr_resolve_symbol("pgzr_last_error");
     pgzr_lib.ingestor_new = (pgzr_ingestor_new_fn)pgzr_resolve_symbol("pgzr_ingestor_new");
