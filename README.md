@@ -7,7 +7,9 @@ C ABI.
 ## Prerequisites
 
 - Ruby >= 3.0
-- `libpgzr` shared library (`libpgzr.dylib` on macOS, `libpgzr.so` on Linux)
+- `libpgzr` >= 0.4.1 shared library (`libpgzr.dylib` on macOS, `libpgzr.so` on
+  Linux). The extension verifies the library's ABI version at load time and
+  refuses to run against an incompatible build.
 
 Set `PGZR_LIB_PATH` to the full path of the library if it is not installed in a
 standard system library location:

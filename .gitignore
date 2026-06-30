@@ -6,3 +6,11 @@
 /pkg/
 Gemfile.lock
 .claude/
+
+# Native extension build artifacts
+/ext/**/Makefile
+/ext/**/mkmf.log
+/ext/**/*.o
+/ext/**/*.bundle
+/ext/**/*.so
+/ext/**/*.bundle.dSYM/
